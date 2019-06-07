@@ -1,4 +1,4 @@
-package nio.bio;/**
+package bio;/**
  * 公司名称
  * <p>
  * 本源代码由《netty》及其作者共同所有，未经版权持有者的事先书面授权，
@@ -7,16 +7,19 @@ package nio.bio;/**
  * @copyright Copyright (c) 2019-2019+3. （company）all rights reserved.
  */
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.*;
 
 /**
- * 基于BIO的Socket服务端
+ * 基于BIO的Socket服务端的工作线程池实现
  *  @author maikec
  *  @date 2019/6/7
  */
-public class TimeServer {
+public class TimeServerByPool {
     public static void main(String[] args) {
         int port = 8080;
         if (null != args && args.length>0){
@@ -28,10 +31,16 @@ public class TimeServer {
         }
         try(ServerSocket server = new ServerSocket(port)) {
             System.out.println("Server stared on " + port);
+//            final ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors()
+//                    ,10,3000, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+
+            ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("TimeServerByPool-%d").build();
+            final ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(),
+                    10,3000,TimeUnit.SECONDS,new LinkedBlockingQueue<>(),threadFactory);
             Socket socket = null;
             while (true){
                 socket =server.accept();
-                new Thread(new TimeServerHandler(socket)).start();
+                executorService.submit(new TimeServerHandler(socket));
             }
         } catch (IOException e) {
             e.printStackTrace();
